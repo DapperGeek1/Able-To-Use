@@ -8,7 +8,7 @@ from .api import AbleClient
 from .const import CONF_ACCOUNT_ID, CONF_PROJECT_KEY, CONF_REFRESH_TOKEN, DEFAULT_PROJECT_KEY
 from .coordinator import AbleConfigEntry, AbleCoordinator
 
-PLATFORMS = [Platform.COVER, Platform.BUTTON, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.LIGHT]
+PLATFORMS = [Platform.COVER, Platform.BUTTON, Platform.NUMBER, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.LIGHT]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: AbleConfigEntry) -> bool:

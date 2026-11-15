@@ -89,6 +89,10 @@ class Device:
         matches = [action for action in self.actions if action.role == role]
         return matches[0] if len(matches) == 1 else None
 
+    @property
+    def supports_custom_position(self) -> bool:
+        return self.kind == GATE and all(self.action_for(role) for role in ("open", "close", "stop"))
+
     def buttons(self) -> tuple[Action, ...]:
         """Return the actions the Android app sends without parameters."""
         if self.kind == GATE:

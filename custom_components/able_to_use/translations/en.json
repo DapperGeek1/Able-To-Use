@@ -35,6 +35,12 @@
     }
   },
   "entity": {
+    "button": {
+      "move_to_partial_position": {"name": "Move to partial position"}
+    },
+    "number": {
+      "partial_open_percentage": {"name": "Partial open percentage"}
+    },
     "sensor": {
       "gate_state": {
         "name": "Reported state",

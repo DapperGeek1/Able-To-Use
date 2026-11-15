@@ -26,6 +26,7 @@ On other platforms, omit `| Set-Clipboard` and copy the printed value into the o
 | --- | --- |
 | Gate cover | Reported position and state, plus dedicated Open, Close and Stop when those actions are enabled for the account. The `gate` device class also enables Home Assistant’s [Gate triggers and conditions](https://www.home-assistant.io/integrations/gate/). |
 | Gate buttons | The account’s enabled gate actions, such as Start, Stop, Partial Start, Open, Close and Pedestrian. Start sends Able’s toggle. Partial Start checks that the gate is closed and uses the motor’s own partial-opening setting. |
+| Partial open percentage and Move to partial position | Set a Home Assistant target for each supported gate. The button moves toward the saved percentage from either direction. |
 | Sun-shading cover and buttons | Open, Close, Stop, and target position where the action list provides them. Named fixed actions include move to the saved favourite position when available. |
 | Light | On/off control for each supported relay channel of a single or dual light. |
 | Sensors | Reported state, position, moving, favourite position, last activity, firmware, and relay status where applicable. Position and motion follow Able’s readings after commands. |
@@ -33,6 +34,12 @@ On other platforms, omit `| Set-Clipboard` and copy the printed value into the o
 Device and action discovery runs automatically. The action list is refreshed every five minutes. The default status poll is 15 seconds and can be changed under the integration’s options. A timed-out command is sent once. Check the gate before pressing again.
 
 After Able accepts an action, status polling switches to roughly once per second while the device changes state. It returns to the configured interval when Able reports the target or a stop. For an action with no known target, such as Partial Start, fast polling ends after the reported state settles. It also ends if the cloud stops responding, a command produces no detectable change within 12 seconds, or the 90-second limit is reached.
+
+### Move to a custom percentage
+
+In the gate’s Home Assistant device page, set **Partial open percentage** under **Configuration**. It defaults to 30% and is saved per gate. Press **Move to partial position** to use that setting. A gate already stopped at the requested position stays there. Press **Stop** to cancel a move.
+
+The button requires a readable gate position and the account’s dedicated Open, Close and Stop actions. For intermediate positions, Home Assistant reads Able’s cloud status roughly once per second and sends Stop when the reported position reaches or crosses the target. Cloud delay and motor travel can cause an overshoot. If Able reports a different final position, Home Assistant shows the percentage it reached.
 
 ## Use HA Gate Card
 
@@ -50,7 +57,7 @@ confirm: true
 pedestrian_entity: button.outer_gate_partial_start
 ```
 
-The cover uses its dedicated Open, Close and Stop controls. The card’s pedestrian slot can point to your Partial Start button or to the separate Pedestrian button when available. Omit that line if your account exposes neither. Use a separate Home Assistant button card for Start when you want the gate’s toggle.
+The cover uses its dedicated Open, Close and Stop controls. To use your saved percentage in the card’s pedestrian slot, set `pedestrian_entity: button.outer_gate_move_to_partial_position` using your button’s entity ID. The slot also accepts Able’s Partial Start or Pedestrian button. Use a separate Home Assistant button card for Start when you want the gate’s toggle.
 
 ## Development
 

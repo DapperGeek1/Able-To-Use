@@ -14,7 +14,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: AbleConfigEntry, async_a
 
 
 def _entities(coordinator: AbleCoordinator, device: Device) -> list[AbleEntity]:
-    return [AbleButton(coordinator, device, action) for action in device.buttons()]
+    buttons: list[AbleEntity] = [AbleButton(coordinator, device, action) for action in device.buttons()]
+    if device.supports_custom_position:
+        buttons.append(AbleMoveToPartialPosition(coordinator, device))
+    return buttons
 
 
 class AbleButton(AbleEntity, ButtonEntity):
@@ -34,3 +37,21 @@ class AbleButton(AbleEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.async_run(self._device_id, action_id=self._action_id)
+
+
+class AbleMoveToPartialPosition(AbleEntity, ButtonEntity):
+    """Move in either direction toward the percentage set in Home Assistant."""
+
+    _attr_translation_key = "move_to_partial_position"
+
+    def __init__(self, coordinator: AbleCoordinator, device: Device) -> None:
+        super().__init__(coordinator, device, "move_to_partial_position")
+
+    @property
+    def available(self) -> bool:
+        device = self.device
+        return bool(super().available and device and device.supports_custom_position
+                    and device.position is not None and device.state is not None)
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_move_to_partial_position(self._device_id)
