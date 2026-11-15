@@ -8,17 +8,17 @@ Use Home Assistant 2025.12 or later.
 
 1. In HACS, add `https://github.com/DapperGeek1/Able-To-Use` as a custom repository of type **Integration**. Search for **Able to Use**, download it, and restart Home Assistant. For a manual install, copy the `custom_components/able_to_use` directory into the `custom_components` folder in your Home Assistant configuration directory, then restart.
 2. In **Settings → Devices & services → Add integration**, select **Able to Use**.
-3. Enter your Able email and password and the Firebase project API key from your copy of the app. Home Assistant keeps the Firebase refresh token in its config entry and discards the password after sign-in. Keep Home Assistant backups private.
+3. Enter your Able email and password. The integration uses the Able to Use Android app’s public Firebase project identifier by default. Home Assistant keeps your refresh token in its config entry and discards the password after sign-in. Keep Home Assistant backups private.
 
 ### Get the project API key
 
-Use a copy of the Able to Use Android APK and Android SDK Build Tools. Run the helper on your own computer. It reads the `google_api_key` Android resource without installing or executing the app. `--aapt` is only needed when `aapt` is outside your `PATH`.
+Leave the **Firebase project API key override** blank during setup or reauthentication unless you need a different key. If Able changes the key or your Android app variant uses a different one, use a copy of your Able to Use APK and Android SDK Build Tools. The helper reads `google_api_key` without installing or executing the app. `--aapt` is only needed when `aapt` is outside your `PATH`.
 
 ```powershell
 python tools/extract_project_key.py "PATH_TO_ABLE_APK" --aapt "PATH_TO_AAPT_EXE" | Set-Clipboard
 ```
 
-On other platforms, omit `| Set-Clipboard` and copy the printed value. Use it only in the Home Assistant setup form. This repository ships no vendor key, certificate, APK, account credentials, or tokens.
+On other platforms, omit `| Set-Clipboard` and copy the printed value into the override field. Existing installations keep their configured key. Your Able account still authorizes access to your devices.
 
 ## Entities
 

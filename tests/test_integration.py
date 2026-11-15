@@ -18,7 +18,7 @@ from homeassistant.helpers import device_registry, entity_registry
 
 from custom_components.able_to_use import api
 from custom_components.able_to_use.api import AbleAuthError, AbleClient, Login
-from custom_components.able_to_use.const import DOMAIN
+from custom_components.able_to_use.const import DEFAULT_PROJECT_KEY, DOMAIN
 from custom_components.able_to_use.coordinator import ActionPoll
 from custom_components.able_to_use.models import parse_device
 
@@ -46,11 +46,15 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
             "roller-uuid": [raw_action("roller-uuid", "target-id", "Target position", "TARGET_POSITION")],
             "light-uuid": [raw_action("light-uuid", "on-id", "On", "RELE_ON"), raw_action("light-uuid", "off-id", "Off", "RELE_OFF")],
         }
+        login_keys = []
+        refresh_keys = []
 
         async def request(_session, method, url, **kwargs):
             if url == api.LOGIN_URL and method == "POST":
+                login_keys.append(kwargs["params"]["key"])
                 return {"localId": "fixture-account", "refreshToken": "fixture-refresh", "idToken": "fixture-identity", "expiresIn": "3600"}
             if url == api.REFRESH_URL and method == "POST":
+                refresh_keys.append(kwargs["params"]["key"])
                 return {"user_id": "fixture-account", "refresh_token": "fixture-rotated", "id_token": "fixture-new", "expires_in": "3600"}
             if url == f"{api.ABLE_URL}devices" and method == "GET":
                 return [record.copy() for record in devices]
@@ -69,14 +73,17 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                     form = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
                     self.assertEqual(form["step_id"], "user")
                     result = await hass.config_entries.flow.async_configure(form["flow_id"], {
-                        "email": "test@example.invalid", "password": "fixture-password", "project_key": "fixture-key",
+                        "email": "test@example.invalid", "password": "fixture-password",
                     })
                     self.assertEqual(result["type"], "create_entry")
                     entry = result["result"]
                     await hass.async_block_till_done()
                     self.assertIs(entry.state, ConfigEntryState.LOADED)
                     self.assertNotIn("password", entry.data)
+                    self.assertNotIn("project_key", entry.data)
                     self.assertEqual(entry.data["refresh_token"], "fixture-rotated")
+                    self.assertEqual(login_keys, [DEFAULT_PROJECT_KEY])
+                    self.assertEqual(refresh_keys, [DEFAULT_PROJECT_KEY])
 
                     registry = entity_registry.async_get(hass)
                     gate_id = registry.async_get_entity_id("cover", DOMAIN, "gate-uuid:cover")
@@ -130,6 +137,19 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                     devices.remove(raw_gate)
                     await coordinator.async_refresh()
                     self.assertEqual(hass.states.get(gate_id).state, "unavailable")
+
+                    for override in ({"project_key": "fixture-override"}, {}):
+                        form = await hass.config_entries.flow.async_init(
+                            DOMAIN, context={"source": "reauth", "entry_id": entry.entry_id}, data=entry.data,
+                        )
+                        result = await hass.config_entries.flow.async_configure(form["flow_id"], {
+                            "email": "test@example.invalid", "password": "fixture-password", **override,
+                        })
+                        self.assertEqual(result["reason"], "reauth_successful")
+                        await hass.async_block_till_done()
+                        self.assertEqual(entry.data["project_key"], "fixture-override")
+                        self.assertEqual(login_keys[-1], "fixture-override")
+                        self.assertEqual(refresh_keys[-1], "fixture-override")
             finally:
                 await hass.async_stop(force=True)
 

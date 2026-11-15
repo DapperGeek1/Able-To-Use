@@ -3,22 +3,22 @@
     "step": {
       "user": {
         "title": "Connect to Able to Use",
-        "description": "Enter your Able to Use email, password and Firebase project API key. See the setup guide for obtaining the project key from your copy of the Android app.",
+        "description": "Enter your Able to Use email and password. Leave the Firebase project key blank to use the bundled Android app key.",
         "data": {
           "email": "Email",
           "password": "Password",
-          "project_key": "Firebase project API key"
+          "project_key": "Firebase project API key override (optional)"
         }
       },
       "reauth_confirm": {
         "title": "Reconnect Able to Use",
-        "description": "Sign in with the same Able account to resume control and status updates.",
-        "data": {"email": "Email", "password": "Password"}
+        "description": "Sign in with the same Able account to resume control and status updates. Leave the project key blank to keep the existing setting.",
+        "data": {"email": "Email", "password": "Password", "project_key": "Firebase project API key override (optional)"}
       }
     },
     "error": {
       "cannot_connect": "Unable to reach the Able cloud or read the account's devices",
-      "invalid_auth": "Able rejected the sign-in. Check the email, password and project key"
+      "invalid_auth": "Able rejected the sign-in. Check the email and password or supply an updated project key"
     },
     "abort": {
       "already_configured": "This Able account is already configured",

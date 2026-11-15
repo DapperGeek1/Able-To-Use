@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import AbleClient
-from .const import CONF_ACCOUNT_ID, CONF_PROJECT_KEY, CONF_REFRESH_TOKEN
+from .const import CONF_ACCOUNT_ID, CONF_PROJECT_KEY, CONF_REFRESH_TOKEN, DEFAULT_PROJECT_KEY
 from .coordinator import AbleConfigEntry, AbleCoordinator
 
 PLATFORMS = [Platform.COVER, Platform.BUTTON, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.LIGHT]
@@ -19,7 +19,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AbleConfigEntry) -> bool
         hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_REFRESH_TOKEN: refresh_token})
 
     client = AbleClient(
-        async_get_clientsession(hass), entry.data[CONF_PROJECT_KEY], entry.data[CONF_ACCOUNT_ID],
+        async_get_clientsession(hass), entry.data.get(CONF_PROJECT_KEY) or DEFAULT_PROJECT_KEY, entry.data[CONF_ACCOUNT_ID],
         entry.data[CONF_REFRESH_TOKEN], save_refresh_token,
     )
     coordinator = AbleCoordinator(hass, entry, client)
