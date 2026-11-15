@@ -1,0 +1,55 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Able to Use",
+        "description": "Enter your Able to Use email, password and Firebase project API key. See the setup guide for obtaining the project key from your copy of the Android app.",
+        "data": {
+          "email": "Email",
+          "password": "Password",
+          "project_key": "Firebase project API key"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect Able to Use",
+        "description": "Sign in with the same Able account to resume control and status updates.",
+        "data": {"email": "Email", "password": "Password"}
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to reach the Able cloud or read the account's devices",
+      "invalid_auth": "Able rejected the sign-in. Check the email, password and project key"
+    },
+    "abort": {
+      "already_configured": "This Able account is already configured",
+      "reauth_successful": "Able to Use was reconnected",
+      "wrong_account": "Sign in with the Able account already configured for this entry"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Able to Use options",
+        "data": {"scan_interval": "Status polling interval in seconds"}
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "gate_state": {
+        "name": "Reported state",
+        "state": {"closed": "Closed", "open": "Open", "partial": "Partially open",
+          "opening": "Opening", "closing": "Closing", "moving": "Moving"}
+      },
+      "position": {"name": "Position"},
+      "favorite": {"name": "Favourite position"},
+      "last_activity": {"name": "Last activity"},
+      "firmware": {"name": "Firmware"}
+    },
+    "binary_sensor": {
+      "moving": {"name": "Moving"},
+      "relay": {"name": "Relay {channel} status"}
+    },
+    "light": {"channel": {"name": "Channel {channel}"}}
+  }
+}

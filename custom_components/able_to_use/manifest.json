@@ -1,0 +1,12 @@
+{
+  "domain": "able_to_use",
+  "name": "Able to Use",
+  "codeowners": ["@DapperGeek1"],
+  "config_flow": true,
+  "documentation": "https://github.com/DapperGeek1/Able-To-Use#readme",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/DapperGeek1/Able-To-Use/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

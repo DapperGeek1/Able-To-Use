@@ -1,0 +1,36 @@
+"""Buttons for actions Able makes available on each controller."""
+
+from homeassistant.components.button import ButtonEntity
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .coordinator import AbleConfigEntry, AbleCoordinator
+from .entity import AbleEntity, async_discover
+from .models import Action, Device
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: AbleConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+    async_discover(entry, async_add_entities, _entities)
+
+
+def _entities(coordinator: AbleCoordinator, device: Device) -> list[AbleEntity]:
+    return [AbleButton(coordinator, device, action) for action in device.buttons()]
+
+
+class AbleButton(AbleEntity, ButtonEntity):
+    """Press one named control from the device's Able action list."""
+
+    def __init__(self, coordinator: AbleCoordinator, device: Device, action: Action) -> None:
+        super().__init__(coordinator, device, f"action:{action.id}")
+        self._action_id = action.id
+        self._role = action.role
+        self._attr_name = action.name
+
+    @property
+    def available(self) -> bool:
+        device = self.device
+        return bool(device and (super().available or self._role == "stop")
+                    and any(action.id == self._action_id for action in device.buttons()))
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_run(self._device_id, action_id=self._action_id)
