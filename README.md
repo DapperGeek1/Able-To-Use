@@ -32,6 +32,8 @@ On other platforms, omit `| Set-Clipboard` and copy the printed value. Use it on
 
 Device and action discovery runs automatically. The action list is refreshed every five minutes. The default status poll is 15 seconds and can be changed under the integration’s options. A timed-out command is sent once. Check the gate before pressing again.
 
+After Able accepts an action, status polling switches to roughly once per second while the device changes state. It returns to the configured interval when Able reports the target or a stop. For an action with no known target, such as Partial Start, fast polling ends after the reported state settles. It also ends if the cloud stops responding, a command produces no detectable change within 12 seconds, or the 90-second limit is reached.
+
 ## Use HA Gate Card
 
 Install [HA Gate Card](https://github.com/ADNPolymerase/ha-gate-card) in HACS. Use your actual entity IDs from **Settings → Devices & services → Entities**. These are examples for a device named Outer Gate.

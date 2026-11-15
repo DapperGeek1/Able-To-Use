@@ -1,5 +1,8 @@
 """Check the coordinator and platforms against a simulated Able account."""
 
+from asyncio import Event, wait_for
+from dataclasses import replace
+from datetime import timedelta
 from pathlib import Path
 from shutil import copytree
 from tempfile import TemporaryDirectory
@@ -9,13 +12,14 @@ from unittest.mock import AsyncMock, Mock, patch
 from homeassistant import loader
 from homeassistant.bootstrap import async_from_config_dict
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry, entity_registry
 
 from custom_components.able_to_use import api
 from custom_components.able_to_use.api import AbleAuthError, AbleClient, Login
 from custom_components.able_to_use.const import DOMAIN
+from custom_components.able_to_use.coordinator import ActionPoll
 from custom_components.able_to_use.models import parse_device
 
 
@@ -89,11 +93,28 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                     coordinator = entry.runtime_data
                     await coordinator.async_run("gate-uuid", role="close")
                     command.assert_called_with("close-id", "fixture-new", {})
+                    self.assertEqual(coordinator.update_interval, timedelta(seconds=1))
+                    motion_reported = Event()
+
+                    @callback
+                    def observe_motion() -> None:
+                        if coordinator.data["gate-uuid"].state == "closing":
+                            motion_reported.set()
+
+                    unsubscribe = coordinator.async_add_listener(observe_motion)
+                    raw_gate.update(open_status="CLOSING", open_perc=20)
+                    try:
+                        await wait_for(motion_reported.wait(), timeout=2.5)
+                    finally:
+                        unsubscribe()
+                    self.assertEqual(hass.states.get(gate_id).state, "closing")
+                    self.assertEqual(coordinator.update_interval, timedelta(seconds=1))
                     with self.assertRaises(HomeAssistantError):
                         await coordinator.async_run("gate-uuid", action_id="partial-id")
                     raw_gate.update(open_status="CLOSED", open_perc=0)
                     await coordinator.async_refresh()
                     self.assertEqual(hass.states.get(gate_id).state, "closed")
+                    self.assertEqual(coordinator.update_interval, timedelta(seconds=15))
                     await coordinator.async_run("gate-uuid", action_id="partial-id")
                     command.assert_called_with("partial-id", "fixture-new", {})
                     raw_gate.update(open_status="OPENING", open_perc=12)
@@ -135,3 +156,24 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         unrelated = raw_action("other-gate", "other-id", "Open")
         disabled = {**raw_action("gate", "denied-id", "Open"), "enabled": False}
         self.assertEqual(gate.with_actions([scoped, unrelated, disabled]).action_for("open").id, "open-id")
+
+    def test_partial_tracks_motion_and_settles_without_a_fixed_target(self) -> None:
+        closed = parse_device({"uuid": "gate", "open_status": "CLOSED", "open_perc": 0})
+        moving = replace(closed, state="opening", position=18)
+        open_partway = replace(closed, state="partial", position=35)
+        action = ActionPoll(closed, "partial", 100, None, None)
+        self.assertFalse(action.complete(closed, 101))
+        self.assertFalse(action.complete(moving, 110))
+        self.assertFalse(action.complete(open_partway, 114))
+        self.assertFalse(action.complete(open_partway, 116))
+        self.assertTrue(action.complete(open_partway, 117))
+
+    def test_no_change_and_continuous_motion_have_limits(self) -> None:
+        closed = parse_device({"uuid": "gate", "open_status": "CLOSED"})
+        action = ActionPoll(closed, "open", 100, None, None)
+        self.assertFalse(action.complete(closed, 111))
+        self.assertTrue(action.complete(closed, 112))
+        moving = replace(closed, state="opening", position=15)
+        action = ActionPoll(closed, "open", 100, None, None)
+        self.assertFalse(action.complete(moving, 189))
+        self.assertTrue(action.complete(moving, 190))
