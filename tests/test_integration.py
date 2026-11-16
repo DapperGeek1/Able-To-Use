@@ -1,12 +1,13 @@
 """Check the coordinator and platforms against a simulated Able account."""
 
-from asyncio import Event, create_task, wait_for
+from asyncio import Event, create_task, sleep, wait_for
 from collections import deque
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 from shutil import copytree
 from tempfile import TemporaryDirectory
+from time import monotonic
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -50,6 +51,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         login_keys = []
         refresh_keys = []
         gate_reports = deque()
+        device_reads = []
 
         async def request(_session, method, url, **kwargs):
             if url == api.LOGIN_URL and method == "POST":
@@ -59,6 +61,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                 refresh_keys.append(kwargs["params"]["key"])
                 return {"user_id": "fixture-account", "refresh_token": "fixture-rotated", "id_token": "fixture-new", "expires_in": "3600"}
             if url == f"{api.ABLE_URL}devices" and method == "GET":
+                device_reads.append(monotonic())
                 if gate_reports:
                     status, position = gate_reports.popleft()
                     raw_gate.update(open_status=status, open_perc=position)
@@ -179,6 +182,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                                 gate_reports.append(("OPENED", stopped))
 
                         command.side_effect = position_command
+                        read_offset = len(device_reads)
                         if final != 35:
                             with self.assertRaisesRegex(HomeAssistantError, "stopped at 37%"):
                                 await wait_for(press_position(), timeout=8)
@@ -190,6 +194,13 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                         self.assertEqual(requested, expected)
                         self.assertEqual(hass.states.get(gate_id).attributes["current_position"], final)
                         self.assertEqual(coordinator.update_interval, timedelta(seconds=15))
+                        if initial == 0:
+                            samples = device_reads[read_offset:]
+                            self.assertGreaterEqual(len(samples), 4)
+                            for previous, current in zip(samples, samples[1:]):
+                                self.assertAlmostEqual(current - previous, 0.5, delta=0.25)
+                            await sleep(0.75)
+                            self.assertEqual(len(device_reads), read_offset + len(samples))
 
                     raw_gate.update(open_status="CLOSED", open_perc=0)
                     opening, release = Event(), Event()
@@ -204,7 +215,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                     with patch.object(coordinator.client, "async_perform", side_effect=hold_open):
                         move = create_task(press_position())
                         await wait_for(opening.wait(), timeout=3)
-                        self.assertEqual(coordinator.update_interval, timedelta(seconds=1))
+                        self.assertEqual(coordinator.update_interval, timedelta(milliseconds=500))
                         with self.assertRaisesRegex(HomeAssistantError, "Use Stop"):
                             await coordinator.async_run("gate-uuid", role="close")
                         active = coordinator._gate_moves["gate-uuid"]

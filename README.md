@@ -61,13 +61,13 @@ On other platforms, omit `| Set-Clipboard` and copy the printed value into the o
 
 Device and action discovery runs automatically. The action list is refreshed every five minutes. The default status poll is 15 seconds and can be changed under the integration’s options. A timed-out command is sent once. Check the gate before pressing again.
 
-After Able accepts an action, status polling switches to roughly once per second while the device changes state. It returns to the configured interval when Able reports the target or a stop. For an action with no known target, such as Partial Start, fast polling ends after the reported state settles. It also ends if the cloud stops responding, a command produces no detectable change within 12 seconds, or the 90-second limit is reached.
+For standard actions, status polling switches to roughly once per second after Able accepts the action and returns to the configured interval when Able reports the target or a stop. For an action with no known target, such as Partial Start, fast polling ends after the reported state settles. It also ends if the cloud stops responding, a command produces no detectable change within 12 seconds, or the 90-second limit is reached.
 
 ### Move to a custom percentage
 
 In the gate’s Home Assistant device page, set **Partial open percentage** under **Configuration**. It defaults to 30% and is saved per gate. Press **Move to partial position** to use that setting. A gate already stopped at the requested position stays there. Press **Stop** to cancel a move.
 
-The button requires a readable gate position and the account’s dedicated Open, Close and Stop actions. For intermediate positions, Home Assistant reads Able’s cloud status roughly once per second and sends Stop when the reported position reaches or crosses the target. Cloud delay and motor travel can cause an overshoot. If Able reports a different final position, Home Assistant shows the percentage it reached.
+The button requires a readable gate position and the account’s dedicated Open, Close and Stop actions. While the move is active, Home Assistant aims to read Able’s cloud status every 500 ms. Each request finishes before the next one starts. For intermediate positions, Home Assistant sends Stop when the reported position reaches or crosses the target. Cloud delay and motor travel can cause an overshoot. If Able reports a different final position, Home Assistant shows the percentage it reached.
 
 ## Use HA Gate Card
 

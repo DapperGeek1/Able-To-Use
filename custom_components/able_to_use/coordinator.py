@@ -22,6 +22,7 @@ from .models import Action, Device
 _LOGGER = logging.getLogger(__name__)
 CATALOG_REFRESH = 300
 ACTIVE_POLL_INTERVAL = timedelta(seconds=1)
+GATE_POSITION_POLL_INTERVAL = timedelta(milliseconds=500)
 ACTION_START_TIMEOUT = 12
 ACTION_MAX_DURATION = 90
 ACTION_SETTLE_TIME = 3
@@ -115,7 +116,30 @@ class AbleCoordinator(DataUpdateCoordinator[dict[str, Device]]):
         self._read_started = self._last_read = 0.0
 
     def _set_poll_interval(self) -> None:
-        self.update_interval = ACTIVE_POLL_INTERVAL if self._action_polls or self._gate_moves else self._normal_interval
+        if self._gate_moves:
+            self.update_interval = GATE_POSITION_POLL_INTERVAL
+        else:
+            self.update_interval = ACTIVE_POLL_INTERVAL if self._action_polls else self._normal_interval
+
+    @callback
+    def _schedule_refresh(self) -> None:
+        if self.update_interval != GATE_POSITION_POLL_INTERVAL:
+            super()._schedule_refresh()
+            return
+
+        self._async_unsub_refresh()
+        if self.entry.pref_disable_polling:
+            return
+        # Whole-second alignment can put a sub-second timer in the past.
+        # Keep 500 ms between read starts when the previous read has finished.
+        delay = max(0, GATE_POSITION_POLL_INTERVAL.total_seconds() - (monotonic() - self._read_started))
+        self._unsub_refresh = self.hass.loop.call_later(delay, self._schedule_gate_position_refresh).cancel
+
+    @callback
+    def _schedule_gate_position_refresh(self) -> None:
+        self.entry.async_create_background_task(
+            self.hass, self._handle_refresh_interval(), name="Able gate position refresh", eager_start=True,
+        )
 
     def _finish_action_polls(self, devices: dict[str, Device], read_started: float) -> None:
         now = monotonic()
@@ -205,7 +229,7 @@ class AbleCoordinator(DataUpdateCoordinator[dict[str, Device]]):
 
             move.updated.clear()
             # Explicitly fetch during positioning if background polling is disabled in Home Assistant.
-            interval = ACTIVE_POLL_INTERVAL.total_seconds()
+            interval = GATE_POSITION_POLL_INTERVAL.total_seconds()
             manual_poll = self.entry.pref_disable_polling and remaining > interval
             try:
                 await wait_for(move.updated.wait(), interval if manual_poll else remaining)
@@ -291,8 +315,12 @@ class AbleCoordinator(DataUpdateCoordinator[dict[str, Device]]):
                     except HomeAssistantError:
                         _LOGGER.warning("Able did not confirm Stop after the partial position action failed")
             finally:
+                was_polling_position = self.update_interval == GATE_POSITION_POLL_INTERVAL
                 del self._gate_moves[device_id]
                 self._set_poll_interval()
+                if was_polling_position and not self._gate_moves and self._unsub_refresh:
+                    self._async_unsub_refresh()
+                    self._schedule_refresh()
 
     async def async_run(
         self, device_id: str, *, role: str | None = None, action_id: str | None = None,
