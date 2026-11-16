@@ -1,14 +1,42 @@
 # Able to Use for Home Assistant
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow.svg?logo=buy-me-a-coffee)](https://buymeacoffee.com/dappergeek)
+
+<a href="https://buymeacoffee.com/dappergeek"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-orange.png" alt="Buy Me a Coffee" height="60"></a>
+
 This custom integration adds devices from an existing Able to Use account. It follows the `custom_components` layout used by [Tuya Local](https://github.com/make-all/tuya-local) and uses Able’s cloud. It requires internet access on the Home Assistant host and the controller.
 
 ## Install
 
 Use Home Assistant 2025.12 or later.
 
-1. In HACS, add `https://github.com/DapperGeek1/Able-To-Use` as a custom repository of type **Integration**. Search for **Able to Use**, download it, and restart Home Assistant. For a manual install, copy the `custom_components/able_to_use` directory into the `custom_components` folder in your Home Assistant configuration directory, then restart.
-2. In **Settings → Devices & services → Add integration**, select **Able to Use**.
-3. Enter your Able email and password. The integration uses the Able to Use Android app’s public Firebase project identifier by default. Home Assistant keeps your refresh token in its config entry and discards the password after sign-in. Keep Home Assistant backups private.
+### Home Assistant Marketplace
+
+Use the built-in Marketplace on Home Assistant 2026.11 or later.
+
+[![Open Able to Use in the Home Assistant Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=DapperGeek1&repository=Able-To-Use&category=integration)
+
+1. Open the repository with the button above. If it hasn't been added, go to **Settings → Marketplace → Add from link** and enter `https://github.com/DapperGeek1/Able-To-Use`. Connect GitHub if prompted and choose **Integration** if asked for a type.
+2. Open **Able to Use** in the Marketplace and select **Install**. Restart Home Assistant if prompted.
+3. If the setup form doesn't open automatically, use the button under [Configuration](#configuration).
+
+### HACS
+
+On Home Assistant versions before 2026.11, open **HACS → ⋮ → Custom repositories**. Add `https://github.com/DapperGeek1/Able-To-Use` with type **Integration**. Open **Able to Use**, select **Download**, and restart Home Assistant.
+
+### Manual installation
+
+Download this repository using **Code → Download ZIP** and extract it. Copy the entire `custom_components/able_to_use` folder into the `custom_components` directory in your Home Assistant configuration folder, then restart Home Assistant.
+
+## Configuration
+
+[![Add the Able to Use integration in Home Assistant](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=able_to_use)
+
+1. After installation, use the button to open setup or go to **Settings → Devices & services → Add integration** and select **Able to Use**.
+2. Enter your Able email and password. Leave **Firebase project API key override** blank to use the Able to Use Android app’s public Firebase project identifier.
+3. Open the **Able to Use** integration under **Devices & services** to see the devices and entities discovered for your account.
+
+Home Assistant keeps your refresh token in its config entry and discards the password after sign-in. Keep Home Assistant backups private.
 
 ### Get the project API key
 
@@ -43,7 +71,7 @@ The button requires a readable gate position and the account’s dedicated Open,
 
 ## Use HA Gate Card
 
-Install [HA Gate Card](https://github.com/ADNPolymerase/ha-gate-card) in HACS. Use your actual entity IDs from **Settings → Devices & services → Entities**. These are examples for a device named Outer Gate.
+Install [HA Gate Card](https://github.com/ADNPolymerase/ha-gate-card) from the Marketplace or HACS. Use your actual entity IDs from **Settings → Devices & services → Entities**. These are examples for a device named Outer Gate.
 
 ```yaml
 type: custom:ha-gate-card
