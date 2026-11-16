@@ -46,6 +46,8 @@ class AbleCover(AbleEntity, CoverEntity):
             for role, flag in FEATURES.items():
                 if device.action_for(role):
                     features |= flag
+            if device.supports_custom_position and device.position is not None and device.state is not None:
+                features |= CoverEntityFeature.SET_POSITION
         return features
 
     @property
@@ -74,4 +76,8 @@ class AbleCover(AbleEntity, CoverEntity):
         await self.coordinator.async_run(self._device_id, role="stop")
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
-        await self.coordinator.async_run(self._device_id, role="target", position=kwargs[ATTR_POSITION])
+        position = kwargs[ATTR_POSITION]
+        if self._attr_device_class == CoverDeviceClass.GATE:
+            await self.coordinator.async_set_gate_position(self._device_id, position)
+        else:
+            await self.coordinator.async_run(self._device_id, role="target", position=position)

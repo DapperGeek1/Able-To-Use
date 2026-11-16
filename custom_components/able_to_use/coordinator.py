@@ -257,14 +257,13 @@ class AbleCoordinator(DataUpdateCoordinator[dict[str, Device]]):
             else:
                 previous = position
 
-    async def async_move_to_partial_position(self, device_id: str) -> None:
+    async def async_set_gate_position(self, device_id: str, target: int) -> None:
         """Choose a direction from live position and verify where the gate stops."""
         if self._shutdown_requested:
             raise HomeAssistantError("The Able integration is shutting down")
         if device_id in self._gate_moves or any((device_id, stopping) in self._commands for stopping in (True, False)):
             raise HomeAssistantError("An Able command is already in progress for this gate")
 
-        target = self.partial_position(device_id)
         move = self._gate_moves[device_id] = GateMove()
         self._set_poll_interval()
         stop_needed = False

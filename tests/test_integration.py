@@ -138,7 +138,10 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                     command.assert_called_with("start-id", "fixture-new", {})
                     await coordinator.async_run("gate-uuid", role="stop")
                     command.assert_called_with("stop-id", "fixture-new", {})
-                    await coordinator.async_run("roller-uuid", role="target", position=66)
+                    roller_id = registry.async_get_entity_id("cover", DOMAIN, "roller-uuid:cover")
+                    await hass.services.async_call(
+                        "cover", "set_cover_position", {"entity_id": roller_id, "position": 66}, blocking=True,
+                    )
                     command.assert_called_with("target-id", "fixture-new", {"parameter": 66})
                     raw_roller.update(open_perc=66)
                     await coordinator.async_run("light-uuid", role="off", relay=2)
@@ -201,6 +204,20 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
                                 self.assertAlmostEqual(current - previous, 0.5, delta=0.25)
                             await sleep(0.75)
                             self.assertEqual(len(device_reads), read_offset + len(samples))
+
+                    raw_gate.update(open_status="CLOSED", open_perc=0)
+
+                    def cover_position_command(action_id, _token, _params):
+                        gate_reports.append(("OPENING" if action_id == "open-id" else "OPENED", 30))
+
+                    command.side_effect = cover_position_command
+                    command.reset_mock()
+                    await hass.services.async_call(
+                        "cover", "set_cover_position", {"entity_id": gate_id, "position": 30}, blocking=True,
+                    )
+                    self.assertEqual([call.args[0] for call in command.call_args_list], ["open-id", "stop-id"])
+                    self.assertEqual(hass.states.get(gate_id).attributes["current_position"], 30)
+                    self.assertEqual(float(hass.states.get(percentage).state), 35)
 
                     raw_gate.update(open_status="CLOSED", open_perc=0)
                     opening, release = Event(), Event()

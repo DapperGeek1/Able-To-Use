@@ -54,4 +54,5 @@ class AbleMoveToPartialPosition(AbleEntity, ButtonEntity):
                     and device.position is not None and device.state is not None)
 
     async def async_press(self) -> None:
-        await self.coordinator.async_move_to_partial_position(self._device_id)
+        position = self.coordinator.partial_position(self._device_id)
+        await self.coordinator.async_set_gate_position(self._device_id, position)

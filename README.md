@@ -52,7 +52,7 @@ On other platforms, omit `| Set-Clipboard` and copy the printed value into the o
 
 | Entity | What it exposes |
 | --- | --- |
-| Gate cover | Reported position and state, plus dedicated Open, Close and Stop when those actions are enabled for the account. The `gate` device class also enables Home Assistant’s [Gate triggers and conditions](https://www.home-assistant.io/integrations/gate/). |
+| Gate cover | Reported position and state, plus dedicated Open, Close and Stop when those actions are enabled for the account. Gates with all three actions and a readable position also support setting the position. The `gate` device class enables Home Assistant’s [Gate triggers and conditions](https://www.home-assistant.io/integrations/gate/). |
 | Gate buttons | The account’s enabled gate actions, such as Start, Stop, Partial Start, Open, Close and Pedestrian. Start sends Able’s toggle. Partial Start checks that the gate is closed and uses the motor’s own partial-opening setting. |
 | Partial open percentage and Move to partial position | Set a Home Assistant target for each supported gate. The button moves toward the saved percentage from either direction. |
 | Sun-shading cover and buttons | Open, Close, Stop, and target position where the action list provides them. Named fixed actions include move to the saved favourite position when available. |
@@ -67,7 +67,13 @@ For standard actions, status polling switches to roughly once per second after A
 
 In the gate’s Home Assistant device page, set **Partial open percentage** under **Configuration**. It defaults to 30% and is saved per gate. Press **Move to partial position** to use that setting. A gate already stopped at the requested position stays there. Press **Stop** to cancel a move.
 
-The button requires a readable gate position and the account’s dedicated Open, Close and Stop actions. While the move is active, Home Assistant aims to read Able’s cloud status every 500 ms. Each request finishes before the next one starts. For intermediate positions, Home Assistant sends Stop when the reported position reaches or crosses the target. Cloud delay and motor travel can cause an overshoot. If Able reports a different final position, Home Assistant shows the percentage it reached.
+The gate cover also accepts a percentage through `cover.set_cover_position`. The action uses the percentage it receives and keeps the saved button setting. Both controls require a readable gate position and the account’s dedicated Open, Close and Stop actions. While the move is active, Home Assistant aims to read Able’s cloud status every 500 ms. Each request finishes before the next one starts. For intermediate positions, Home Assistant sends Stop when the reported position reaches or crosses the target. Cloud delay and motor travel can cause an overshoot. If Able reports a different final position, Home Assistant shows the percentage it reached.
+
+### Google Home voice control
+
+Expose the gate’s `cover` entity through the [Google Assistant integration](https://www.home-assistant.io/integrations/google_assistant/). In a manual setup, keep `cover` in `exposed_domains` and set `secure_devices_pin` under `google_assistant:` to enable voice opening. For example, use `secure_devices_pin: !secret google_gate_pin` and put your own numeric PIN in `secrets.yaml` as a quoted string.
+
+After updating Able to Use and restarting Home Assistant, say **“Hey Google, sync my devices”** or run `google_assistant.request_sync` in Home Assistant. Then say **“Hey Google, open Outer Gate to 30 percent”**, using the name shown in Google Home. Provide your PIN when Google asks for it.
 
 ## Use HA Gate Card
 
